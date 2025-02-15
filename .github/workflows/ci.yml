@@ -1,0 +1,44 @@
+name: NestJS CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - branch1
+      - branch2
+      - branch3
+
+jobs:
+  test_and_merge:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+
+      - name: Install Dependencies
+        run: npm install
+
+      - name: Run NestJS Build
+        run: npm run build  # Ensures TypeScript compiles without errors
+
+      - name: Run Tests
+        run: npm test  # Ensure NestJS test scripts exist in package.json
+
+      - name: Merge into Main (if tests pass)
+        if: success()
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions@github.com"
+          git checkout main
+          git pull origin main
+          git merge --no-ff ${{ github.ref_name }} -m "Auto-merge ${{ github.ref_name }} into main"
+          git push origin main
+
+      - name: Notify on Failure
+        if: failure()
+        run: echo "Merge failed for ${{ github.ref_name }}. Check the tests."
